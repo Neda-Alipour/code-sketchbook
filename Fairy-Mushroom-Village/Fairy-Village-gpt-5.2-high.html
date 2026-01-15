@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fairy Mushroom Village</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root{
+      --skyTop: #0a1327;
+      --skyBottom:#1a3d41;
+      --haze: rgba(160, 255, 232, 0.10);
+      --groundDark:#0b1f16;
+      --groundLight:#173b25;
+      --glow:#f6e89a;
+      --glow2:#8bffdf;
+      --lantern: 1;
+      --mist: 1;
+      --stars: 1;
+      --sunbeams: 0;
+      --ambient: 0.85;
+    }
+
+    html, body { height: 100%; }
+    body {
+      background: radial-gradient(1200px 700px at 50% 30%, rgba(255,255,255,0.05), transparent 55%),
+                  linear-gradient(180deg, var(--skyTop), var(--skyBottom));
+      color: rgba(255,255,255,0.92);
+    }
+
+    /* Scene layers */
+    #skyLayer{
+      background: radial-gradient(1000px 600px at 50% 20%, rgba(255,255,255,0.06), transparent 60%),
+                  linear-gradient(180deg, var(--skyTop), var(--skyBottom));
+      transition: background 600ms ease;
+    }
+
+    .mist {
+      opacity: calc(var(--mist) * 1);
+      background:
+        radial-gradient(900px 260px at 20% 70%, rgba(200,255,246,0.11), transparent 60%),
+        radial-gradient(1000px 320px at 70% 60%, rgba(160,255,232,0.10), transparent 60%),
+        radial-gradient(800px 240px at 40% 85%, rgba(210,255,248,0.08), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.0));
+      filter: blur(0.6px);
+      mix-blend-mode: screen;
+      transition: opacity 400ms ease;
+    }
+
+    .vignette {
+      background: radial-gradient(1200px 900px at 50% 50%, transparent 40%, rgba(0,0,0,0.55) 100%);
+      pointer-events: none;
+    }
+
+    .stars {
+      opacity: var(--stars);
+      background:
+        radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.9), transparent 60%),
+        radial-gradient(1px 1px at 22% 35%, rgba(255,255,255,0.7), transparent 60%),
+        radial-gradient(1px 1px at 45% 18%, rgba(255,255,255,0.85), transparent 60%),
+        radial-gradient(1px 1px at 58% 28%, rgba(255,255,255,0.8), transparent 60%),
+        radial-gradient(1px 1px at 67% 16%, rgba(255,255,255,0.65), transparent 60%),
+        radial-gradient(1px 1px at 79% 24%, rgba(255,255,255,0.8), transparent 60%),
+        radial-gradient(1px 1px at 86% 40%, rgba(255,255,255,0.75), transparent 60%),
+        radial-gradient(1px 1px at 16% 55%, rgba(255,255,255,0.7), transparent 60%),
+        radial-gradient(1px 1px at 33% 48%, rgba(255,255,255,0.75), transparent 60%),
+        radial-gradient(1px 1px at 52% 52%, rgba(255,255,255,0.65), transparent 60%),
+        radial-gradient(1px 1px at 72% 56%, rgba(255,255,255,0.72), transparent 60%),
+        radial-gradient(1px 1px at 91% 60%, rgba(255,255,255,0.78), transparent 60%);
+      transition: opacity 600ms ease;
+      mix-blend-mode: screen;
+    }
+
+    .sunbeams{
+      opacity: var(--sunbeams);
+      background:
+        conic-gradient(from 210deg at 50% 15%, rgba(255,244,200,0.18), transparent 20%, rgba(255,244,200,0.11) 40%, transparent 60%, rgba(255,244,200,0.08) 80%, transparent 100%);
+      filter: blur(1.2px);
+      mix-blend-mode: screen;
+      transition: opacity 600ms ease;
+    }
+
+    /* SVG interaction */
+    .house { cursor: pointer; }
+    .window { fill: rgba(255, 222, 140, calc(0.12 + 0.30 * var(--lantern))); stroke: rgba(255,255,255,0.12); stroke-width: 1; }
+    .window.lit { fill: rgba(255, 230, 160, calc(0.75 * var(--lantern))); filter: url(#glow); }
+    .door { fill: #3a2b20; stroke: rgba(255,255,255,0.10); stroke-width: 1; }
+    .door .knob { fill: rgba(255, 215, 128, 0.85); }
+    .capSpot { opacity: 0.88; }
+
+    /* Soft breathing of the village */
+    @media (prefers-reduced-motion: no-preference) {
+      .breath { animation: breath 6.5s ease-in-out infinite; transform-origin: 50% 80%; }
+      @keyframes breath { 0%,100%{ transform: translateY(0px) } 50% { transform: translateY(-2px) } }
+    }
+
+    /* UI glass */
+    .glass {
+      background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06));
+      border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(10px);
+    }
+
+    /* Tooltip */
+    .tip {
+      background: rgba(10, 16, 28, 0.72);
+      border: 1px solid rgba(255,255,255,0.14);
+      backdrop-filter: blur(8px);
+    }
+
+    /* Canvas crispness */
+    canvas { image-rendering: auto; }
+  </style>
+</head>
+<body class="min-h-screen overflow-hidden">
+  <main class="relative w-full h-[100svh]">
+    <!-- Scene -->
+    <section id="scene" class="relative w-full h-full overflow-hidden select-none">
+      <div id="skyLayer" class="absolute inset-0"></div>
+      <div id="starsLayer" class="stars absolute inset-0"></div>
+      <div id="sunbeamsLayer" class="sunbeams absolute inset-0"></div>
+
+      <!-- Tree silhouettes -->
+      <div id="treesFar" class="absolute inset-x-0 bottom-[30%] h-[55%] opacity-60" aria-hidden="true" style="mix-blend-mode:multiply;">
+        <svg class="w-full h-full" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="treeFade" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="#071220" stop-opacity="0.85" />
+              <stop offset="1" stop-color="#071220" stop-opacity="0.15" />
+            </linearGradient>
+          </defs>
+          <path d="M0 430 C 100 420, 150 280, 230 290 C 290 300, 270 420, 330 430 C 390 440, 410 320, 480 315 C 560 310, 520 440, 600 440 C 690 440, 660 290, 740 290 C 820 290, 790 440, 900 445 C 980 448, 980 330, 1040 325 C 1100 320, 1120 400, 1200 395 L 1200 600 L 0 600 Z" fill="url(#treeFade)"/>
+          <g opacity="0.72" fill="#06101e">
+            <path d="M120 520 C140 460, 155 395, 160 350 C165 305, 140 260, 150 220 C160 180, 190 155, 190 120 C190 90, 165 70, 165 50 C165 35, 195 35, 195 25 C195 10, 160 0, 145 20 C130 40, 120 80, 128 110 C135 140, 120 160, 110 190 C100 220, 120 265, 118 290 C116 315, 90 340, 92 375 C94 410, 110 460, 120 520 Z"/>
+            <path d="M1020 520 C1040 470, 1065 410, 1068 360 C1071 310, 1042 255, 1050 220 C1058 185, 1088 160, 1088 130 C1088 100, 1065 80, 1066 60 C1067 40, 1098 40, 1100 26 C1104 6, 1068 0, 1054 18 C1040 36, 1032 70, 1038 102 C1044 134, 1030 160, 1020 190 C1010 220, 1028 260, 1028 292 C1028 324, 1000 350, 1002 388 C1004 426, 1012 470, 1020 520 Z"/>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Mist + vignette -->
+      <div id="mistLayer" class="mist absolute inset-0 pointer-events-none"></div>
+      <div class="vignette absolute inset-0"></div>
+
+      <!-- Particle canvas -->
+      <canvas id="particles" class="absolute inset-0 w-full h-full" aria-hidden="true"></canvas>
+
+      <!-- Village SVG -->
+      <div id="villageWrap" class="absolute inset-x-0 bottom-0 h-[72%]" aria-label="Fairy mushroom village scene">
+        <svg id="village" class="w-full h-full" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc" preserveAspectRatio="xMidYMid slice">
+          <title id="title">Fairy Mushroom Village</title>
+          <desc id="desc">A whimsical village of toadstool houses with tiny doors, glowing windows, forest floor details, and floating magical spores.</desc>
+
+          <defs>
+            <linearGradient id="groundGrad" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="var(--groundLight)" stop-opacity="0.95" />
+              <stop offset="1" stop-color="var(--groundDark)" stop-opacity="1" />
+            </linearGradient>
+
+            <linearGradient id="stemGrad" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0" stop-color="#efe7d8" stop-opacity="0.92" />
+              <stop offset="0.55" stop-color="#d8cfbe" stop-opacity="0.95" />
+              <stop offset="1" stop-color="#b9b0a1" stop-opacity="0.9" />
+            </linearGradient>
+
+            <linearGradient id="capRed" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="#ff547a" stop-opacity="0.95" />
+              <stop offset="1" stop-color="#b0133e" stop-opacity="0.95" />
+            </linearGradient>
+
+            <linearGradient id="capBlue" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="#6df0ff" stop-opacity="0.85" />
+              <stop offset="1" stop-color="#0aa2b6" stop-opacity="0.88" />
+            </linearGradient>
+
+            <linearGradient id="capAmber" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="#ffd98b" stop-opacity="0.85" />
+              <stop offset="1" stop-color="#c97a26" stop-opacity="0.9" />
+            </linearGradient>
+
+            <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+              <feGaussianBlur stdDeviation="3" result="b" />
+              <feColorMatrix in="b" type="matrix" values="1 0 0 0 0.9  0 1 0 0 0.8  0 0 1 0 0.35  0 0 0 1 0" result="c" />
+              <feMerge>
+                <feMergeNode in="c" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+
+            <filter id="softShadow" x="-40%" y="-40%" width="180%" height="180%">
+              <feDropShadow dx="0" dy="9" stdDeviation="7" flood-color="#000" flood-opacity="0.40" />
+            </filter>
+
+            <filter id="microGlow" x="-60%" y="-60%" width="220%" height="220%">
+              <feGaussianBlur stdDeviation="1.4" result="b" />
+              <feColorMatrix in="b" type="matrix" values="1 0 0 0 0.45  0 1 0 0 1  0 0 1 0 0.9  0 0 0 1 0" result="c" />
+              <feMerge>
+                <feMergeNode in="c" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+
+            <pattern id="moss" width="70" height="70" patternUnits="userSpaceOnUse">
+              <circle cx="12" cy="10" r="8" fill="#2a6a3e" fill-opacity="0.55"/>
+              <circle cx="42" cy="26" r="10" fill="#1f5130" fill-opacity="0.55"/>
+              <circle cx="18" cy="48" r="9" fill="#2e7545" fill-opacity="0.5"/>
+              <circle cx="55" cy="54" r="9" fill="#1b462a" fill-opacity="0.52"/>
+            </pattern>
+
+            <pattern id="wood" width="80" height="40" patternUnits="userSpaceOnUse">
+              <rect width="80" height="40" fill="#2d2018"/>
+              <path d="M0 12 C 14 8, 22 16, 38 12 C 50 9, 60 14, 80 10" stroke="rgba(255,255,255,0.10)" stroke-width="2" fill="none" />
+              <path d="M0 28 C 12 24, 24 32, 40 28 C 54 24, 62 30, 80 26" stroke="rgba(0,0,0,0.25)" stroke-width="2" fill="none" />
+            </pattern>
+          </defs>
+
+          <!-- Ground -->
+          <g id="ground" filter="url(#softShadow)">
+            <path d="M0 390 C 160 350, 260 420, 380 410 C 520 398, 600 340, 730 350 C 880 362, 940 430, 1200 390 L 1200 700 L 0 700 Z" fill="url(#groundGrad)"/>
+            <path d="M0 430 C 170 410, 250 460, 380 450 C 520 438, 595 392, 740 404 C 870 414, 945 470, 1200 438" stroke="rgba(200,255,232,0.10)" stroke-width="2" fill="none"/>
+            <path d="M0 520 C 180 510, 260 570, 420 560 C 560 552, 640 505, 790 520 C 945 536, 1000 590, 1200 560" stroke="rgba(0,0,0,0.25)" stroke-width="3" fill="none"/>
+
+            <!-- Moss patches -->
+            <path d="M120 520 C 160 492, 210 492, 250 520 C 220 560, 170 570, 120 548 Z" fill="url(#moss)" opacity="0.9"/>
+            <path d="M820 560 C 880 528, 940 536, 1000 572 C 960 610, 890 620, 830 595 Z" fill="url(#moss)" opacity="0.85"/>
+
+            <!-- Fallen log -->
+            <g opacity="0.9">
+              <path d="M320 585 C 380 555, 468 552, 540 578 C 560 586, 560 606, 540 614 C 470 642, 380 642, 325 620 C 305 612, 300 594, 320 585 Z" fill="#2a1e17"/>
+              <path d="M332 594 C 385 572, 458 570, 522 590" stroke="rgba(255,255,255,0.10)" stroke-width="2" fill="none"/>
+              <circle cx="540" cy="596" r="18" fill="#1b140f"/>
+              <circle cx="540" cy="596" r="12" fill="#261c15"/>
+              <circle cx="540" cy="596" r="6" fill="#150f0b"/>
+            </g>
+
+            <!-- Pebbles -->
+            <g fill="rgba(255,255,255,0.10)">
+              <ellipse cx="690" cy="590" rx="10" ry="6"/>
+              <ellipse cx="715" cy="603" rx="8" ry="5"/>
+              <ellipse cx="650" cy="607" rx="7" ry="4"/>
+              <ellipse cx="180" cy="610" rx="9" ry="5"/>
+              <ellipse cx="205" cy="620" rx="7" ry="4"/>
+            </g>
+
+            <!-- Tiny flowers -->
+            <g opacity="0.95" filter="url(#microGlow)">
+              <g transform="translate(920 615)">
+                <circle r="2" fill="#ffb3d7"/><circle cx="6" cy="3" r="1.8" fill="#ffb3d7"/><circle cx="-5" cy="5" r="1.6" fill="#ffb3d7"/><circle cx="3" cy="-4" r="1.6" fill="#ffb3d7"/>
+              </g>
+              <g transform="translate(110 585)">
+                <circle r="2" fill="#b7fff0"/><circle cx="6" cy="2" r="1.8" fill="#b7fff0"/><circle cx="-5" cy="5" r="1.6" fill="#b7fff0"/><circle cx="3" cy="-4" r="1.6" fill="#b7fff0"/>
+              </g>
+              <g transform="translate(560 645)">
+                <circle r="2" fill="#ffeaa6"/><circle cx="6" cy="3" r="1.7" fill="#ffeaa6"/><circle cx="-5" cy="6" r="1.5" fill="#ffeaa6"/><circle cx="3" cy="-4" r="1.5" fill="#ffeaa6"/>
+              </g>
+            </g>
+          </g>
+
+          <!-- Village cluster -->
+          <g id="villageCluster" class="breath" transform="translate(0 0)">
+            <!-- House 1 (red cap) -->
+            <g class="house" data-house="Crimson Toadstool" tabindex="0" role="button" aria-label="Crimson Toadstool house">
+              <g transform="translate(280 240)">
+                <path d="M130 290 C 105 240, 110 170, 130 120 C 150 70, 190 40, 220 40 C 250 40, 290 70, 310 120 C 330 170, 335 240, 310 290 C 280 350, 160 350, 130 290 Z" fill="url(#stemGrad)" opacity="0.98"/>
+                <path d="M85 140 C 95 85, 160 40, 220 40 C 285 40, 345 85, 355 140 C 365 195, 315 215, 220 215 C 125 215, 75 195, 85 140 Z" fill="url(#capRed)"/>
+                <g class="capSpot" fill="rgba(255,255,255,0.90)">
+                  <circle cx="160" cy="110" r="16"/>
+                  <circle cx="220" cy="92" r="12"/>
+                  <circle cx="275" cy="122" r="14"/>
+                  <circle cx="205" cy="140" r="9"/>
+                  <circle cx="305" cy="150" r="9" opacity="0.8"/>
+                </g>
+
+                <!-- Door & windows -->
+                <g>
+                  <path class="door" d="M212 260 C 195 260, 182 275, 182 295 L 182 330 C 182 352, 205 368, 228 368 C 251 368, 274 352, 274 330 L 274 295 C 274 275, 261 260, 244 260 Z" fill="url(#wood)"/>
+                  <circle class="knob" cx="262" cy="315" r="4"/>
+
+                  <circle class="window lit" data-window="w1" cx="165" cy="255" r="10" />
+                  <circle class="window lit" data-window="w2" cx="295" cy="250" r="9" />
+                  <circle class="window" data-window="w3" cx="205" cy="240" r="7" />
+                </g>
+
+                <!-- Tiny stepping stones -->
+                <g fill="rgba(255,255,255,0.10)">
+                  <ellipse cx="228" cy="390" rx="12" ry="6"/>
+                  <ellipse cx="210" cy="410" rx="10" ry="5"/>
+                  <ellipse cx="246" cy="410" rx="10" ry="5"/>
+                </g>
+              </g>
+            </g>
+
+            <!-- House 2 (blue cap) -->
+            <g class="house" data-house="Mooncap Cottage" tabindex="0" role="button" aria-label="Mooncap Cottage">
+              <g transform="translate(540 270)">
+                <path d="M105 255 C 86 220, 90 172, 105 135 C 120 98, 150 72, 175 72 C 200 72, 230 98, 245 135 C 260 172, 264 220, 245 255 C 220 302, 130 302, 105 255 Z" fill="url(#stemGrad)" opacity="0.98"/>
+                <path d="M70 150 C 78 110, 120 72, 175 72 C 230 72, 272 110, 280 150 C 288 190, 252 210, 175 210 C 98 210, 62 190, 70 150 Z" fill="url(#capBlue)"/>
+                <g class="capSpot" fill="rgba(227,255,255,0.85)">
+                  <circle cx="120" cy="140" r="12"/>
+                  <circle cx="170" cy="120" r="9"/>
+                  <circle cx="218" cy="142" r="10"/>
+                  <circle cx="250" cy="165" r="7" opacity="0.8"/>
+                </g>
+
+                <g>
+                  <path class="door" d="M160 245 C 145 245, 134 258, 134 275 L 134 303 C 134 322, 153 336, 175 336 C 197 336, 216 322, 216 303 L 216 275 C 216 258, 205 245, 190 245 Z" fill="url(#wood)"/>
+                  <circle class="knob" cx="206" cy="290" r="3.5"/>
+                  <circle class="window lit" data-window="w1" cx="125" cy="238" r="8" />
+                  <circle class="window" data-window="w2" cx="225" cy="232" r="7" />
+                </g>
+
+                <!-- Little lantern on a stick -->
+                <g transform="translate(255 300)" opacity="0.95">
+                  <path d="M0 0 L 0 45" stroke="rgba(255,255,255,0.18)" stroke-width="2" />
+                  <rect x="-8" y="-14" width="16" height="16" rx="4" fill="rgba(20,30,44,0.7)" stroke="rgba(255,255,255,0.14)" />
+                  <circle class="window lit" cx="0" cy="-6" r="4" />
+                </g>
+              </g>
+            </g>
+
+            <!-- House 3 (amber cap) -->
+            <g class="house" data-house="Amber Spore House" tabindex="0" role="button" aria-label="Amber Spore House">
+              <g transform="translate(760 255)">
+                <path d="M125 275 C 102 235, 106 175, 125 132 C 144 88, 182 60, 212 60 C 242 60, 280 88, 299 132 C 318 175, 322 235, 299 275 C 270 330, 155 330, 125 275 Z" fill="url(#stemGrad)" opacity="0.98"/>
+                <path d="M88 150 C 98 102, 150 60, 212 60 C 274 60, 326 102, 336 150 C 346 198, 298 220, 212 220 C 126 220, 78 198, 88 150 Z" fill="url(#capAmber)"/>
+                <g class="capSpot" fill="rgba(255,255,255,0.82)">
+                  <circle cx="152" cy="140" r="14"/>
+                  <circle cx="206" cy="118" r="10"/>
+                  <circle cx="256" cy="144" r="12"/>
+                  <circle cx="296" cy="168" r="8" opacity="0.8"/>
+                </g>
+
+                <g>
+                  <path class="door" d="M198 265 C 182 265, 170 278, 170 295 L 170 328 C 170 350, 190 365, 212 365 C 234 365, 254 350, 254 328 L 254 295 C 254 278, 242 265, 226 265 Z" fill="url(#wood)"/>
+                  <circle class="knob" cx="245" cy="315" r="4"/>
+                  <circle class="window lit" data-window="w1" cx="160" cy="262" r="8" />
+                  <circle class="window lit" data-window="w2" cx="266" cy="258" r="7" />
+                  <circle class="window" data-window="w3" cx="212" cy="245" r="6" />
+                </g>
+
+                <!-- Mushlings around -->
+                <g opacity="0.9">
+                  <g transform="translate(110 360) scale(0.9)">
+                    <path d="M18 44 C 12 34, 12 20, 18 14 C 24 8, 32 8, 38 14 C 44 20, 44 34, 38 44 C 32 56, 24 56, 18 44 Z" fill="url(#stemGrad)"/>
+                    <path d="M8 20 C 10 8, 22 0, 28 0 C 36 0, 46 8, 48 20 C 50 32, 40 36, 28 36 C 16 36, 6 32, 8 20 Z" fill="#cf2a58"/>
+                    <circle class="capSpot" cx="18" cy="18" r="4" fill="rgba(255,255,255,0.9)"/>
+                  </g>
+                  <g transform="translate(322 368) scale(0.8)">
+                    <path d="M18 44 C 12 34, 12 20, 18 14 C 24 8, 32 8, 38 14 C 44 20, 44 34, 38 44 C 32 56, 24 56, 18 44 Z" fill="url(#stemGrad)"/>
+                    <path d="M8 20 C 10 8, 22 0, 28 0 C 36 0, 46 8, 48 20 C 50 32, 40 36, 28 36 C 16 36, 6 32, 8 20 Z" fill="#1ac7dc" opacity="0.85"/>
+                    <circle class="capSpot" cx="35" cy="14" r="4" fill="rgba(255,255,255,0.9)"/>
+                  </g>
+                </g>
+              </g>
+            </g>
+
+            <!-- Tiny door burrow (fairy nook) -->
+            <g class="house" data-house="Root Nook" tabindex="0" role="button" aria-label="Root Nook tiny door">
+              <g transform="translate(110 470)">
+                <path d="M0 70 C 35 30, 85 30, 120 70 C 100 100, 20 100, 0 70 Z" fill="rgba(0,0,0,0.22)"/>
+                <path d="M20 70 C 44 46, 76 46, 100 70 L 100 95 C 100 112, 84 125, 60 125 C 36 125, 20 112, 20 95 Z" fill="url(#wood)" stroke="rgba(255,255,255,0.12)"/>
+                <circle class="knob" cx="88" cy="93" r="3.5"/>
+                <circle class="window" data-window="w1" cx="36" cy="78" r="5" />
+              </g>
+            </g>
+
+          </g>
+
+          <!-- Foreground grasses -->
+          <g opacity="0.9" style="mix-blend-mode:screen;">
+            <path d="M0 620 C 80 610, 140 640, 220 630 C 320 618, 380 650, 500 640 C 600 630, 690 660, 810 648 C 930 636, 1020 670, 1200 650" stroke="rgba(140,255,220,0.08)" stroke-width="4" fill="none"/>
+            <path d="M0 650 C 120 636, 180 688, 300 672 C 430 655, 490 704, 620 680 C 740 657, 820 704, 960 684 C 1080 666, 1120 694, 1200 686" stroke="rgba(255,244,200,0.06)" stroke-width="3" fill="none"/>
+          </g>
+        </svg>
+      </div>
+
+      <!-- HUD controls -->
+      <aside class="absolute left-4 top-4 z-20 w-[min(420px,calc(100%-2rem))] glass rounded-2xl p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h1 class="text-lg font-semibold tracking-wide">Fairy Mushroom Village</h1>
+            <p class="text-xs text-white/70 mt-0.5">Click a house to toggle its glow. Click the scene to scatter spores.</p>
+          </div>
+          <button id="helpBtn" class="text-xs px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10">Tips</button>
+        </div>
+
+        <div class="mt-4 grid grid-cols-2 gap-3">
+          <label class="col-span-2 text-xs text-white/70" for="timeRange">Time of day</label>
+          <input id="timeRange" type="range" min="0" max="100" value="35" class="col-span-2 w-full" aria-label="Time of day" />
+
+          <button id="sporeBtn" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm">Scatter spores</button>
+          <button id="resetBtn" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm">Reset</button>
+
+          <div class="col-span-2 grid grid-cols-3 gap-2">
+            <button id="mistBtn" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm" aria-pressed="true">Mist: on</button>
+            <button id="lanternBtn" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm" aria-pressed="true">Lanterns: on</button>
+            <button id="motionBtn" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm" aria-pressed="true">Parallax: on</button>
+          </div>
+        </div>
+
+        <div class="mt-3 text-[11px] text-white/60 leading-relaxed">
+          <span class="font-medium text-white/70">Try:</span> hover a house to learn its name; press <kbd class="px-1 rounded bg-white/10 border border-white/10">Space</kbd> to scatter spores.
+        </div>
+      </aside>
+
+      <!-- Tooltip -->
+      <div id="tooltip" class="tip absolute z-30 hidden px-3 py-2 rounded-xl text-xs text-white/85 pointer-events-none max-w-[240px]"></div>
+
+      <!-- Help modal -->
+      <div id="helpModal" class="absolute inset-0 z-40 hidden">
+        <div class="absolute inset-0 bg-black/60" data-close="1"></div>
+        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(520px,calc(100%-2rem))] glass rounded-2xl p-5">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h2 class="text-base font-semibold">Wandering in the village</h2>
+              <p class="text-sm text-white/75 mt-1">A tiny interactive scene: spores drift upward, fireflies wander, and the houses can be lit.</p>
+            </div>
+            <button class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm" data-close="1">Close</button>
+          </div>
+          <ul class="mt-4 space-y-2 text-sm text-white/75">
+            <li><span class="text-white/85">Click</span> anywhere to release a spore burst.</li>
+            <li><span class="text-white/85">Click a house</span> to toggle its windows.</li>
+            <li>Use <span class="text-white/85">Time of day</span> to shift from night to dusk to morning beams.</li>
+            <li>If you prefer stillness, turn <span class="text-white/85">Parallax</span> off (respects reduced motion).</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Footer hint -->
+      <div class="absolute right-4 bottom-4 z-20 text-xs text-white/55">
+        <span class="hidden sm:inline">Fairy mushroom village scene</span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function(){
+      const scene = document.getElementById('scene');
+      const canvas = document.getElementById('particles');
+      const ctx = canvas.getContext('2d');
+
+      const tooltip = document.getElementById('tooltip');
+      const village = document.getElementById('village');
+
+      const timeRange = document.getElementById('timeRange');
+      const sporeBtn = document.getElementById('sporeBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const mistBtn = document.getElementById('mistBtn');
+      const lanternBtn = document.getElementById('lanternBtn');
+      const motionBtn = document.getElementById('motionBtn');
+      const helpBtn = document.getElementById('helpBtn');
+      const helpModal = document.getElementById('helpModal');
+
+      const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      const state = {
+        t: 0.35, // 0 = night, 1 = day
+        mist: true,
+        lantern: true,
+        motion: !prefersReducedMotion,
+        dpr: Math.max(1, Math.min(2, window.devicePixelRatio || 1)),
+        mouse: { x: 0.5, y: 0.45 },
+        parallax: { x: 0, y: 0 }
+      };
+
+      // Helpers
+      const lerp = (a,b,t) => a + (b-a)*t;
+      const clamp01 = (x) => Math.max(0, Math.min(1, x));
+      const hexToRgb = (hex) => {
+        const h = hex.replace('#','').trim();
+        const v = h.length === 3 ? h.split('').map(c=>c+c).join('') : h;
+        const n = parseInt(v, 16);
+        return { r: (n>>16)&255, g: (n>>8)&255, b: n&255 };
+      };
+      const rgbToHex = ({r,g,b}) => {
+        const to = (x) => x.toString(16).padStart(2,'0');
+        return `#${to(r)}${to(g)}${to(b)}`;
+      };
+      const mixHex = (h1,h2,t) => {
+        const a = hexToRgb(h1), b = hexToRgb(h2);
+        return rgbToHex({
+          r: Math.round(lerp(a.r,b.r,t)),
+          g: Math.round(lerp(a.g,b.g,t)),
+          b: Math.round(lerp(a.b,b.b,t))
+        });
+      };
+
+      function setVars(obj){
+        for (const [k,v] of Object.entries(obj)) {
+          document.documentElement.style.setProperty(k, v);
+        }
+      }
+
+      function applyTime(){
+        const t = clamp01(state.t);
+        // Night -> Dusk -> Day palette
+        const nightTop = '#070d20', nightBottom = '#163a3e';
+        const duskTop  = '#1a1233', duskBottom  = '#2c5b52';
+        const dayTop   = '#b6f0ff', dayBottom   = '#5cb6a6';
+
+        const mid = 0.55;
+        let skyTop, skyBottom;
+        if (t < mid) {
+          const u = t / mid;
+          skyTop = mixHex(nightTop, duskTop, u);
+          skyBottom = mixHex(nightBottom, duskBottom, u);
+        } else {
+          const u = (t - mid) / (1 - mid);
+          skyTop = mixHex(duskTop, dayTop, u);
+          skyBottom = mixHex(duskBottom, dayBottom, u);
+        }
+
+        // Stars fade out by day
+        const stars = 1 - Math.pow(t, 1.6);
+        // Sunbeams appear toward day
+        const sunbeams = Math.pow(t, 1.8);
+        // Lanterns stronger at night
+        const lantern = state.lantern ? (1 - Math.pow(t, 1.2)) : 0;
+
+        setVars({
+          '--skyTop': skyTop,
+          '--skyBottom': skyBottom,
+          '--stars': stars.toFixed(3),
+          '--sunbeams': sunbeams.toFixed(3),
+          '--lantern': lantern.toFixed(3),
+          '--mist': (state.mist ? 1 : 0)
+        });
+      }
+
+      // Canvas / particles
+      function resize(){
+        const rect = scene.getBoundingClientRect();
+        canvas.width = Math.floor(rect.width * state.dpr);
+        canvas.height = Math.floor(rect.height * state.dpr);
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = rect.height + 'px';
+        ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      }
+
+      const spores = [];
+      const fireflies = [];
+
+      function spawnSpore(x,y, burst=false){
+        const count = burst ? 22 : 1;
+        for (let i=0; i<count; i++){
+          spores.push({
+            x: x + (Math.random()-0.5) * (burst ? 60 : 12),
+            y: y + (Math.random()-0.5) * (burst ? 20 : 10),
+            vx: (Math.random()-0.5) * (burst ? 0.9 : 0.25),
+            vy: - (0.25 + Math.random()*0.55) * (burst ? 1.2 : 1),
+            r: burst ? (0.8 + Math.random()*2.2) : (0.7 + Math.random()*1.2),
+            life: burst ? (1200 + Math.random()*800) : (2500 + Math.random()*2500),
+            age: 0,
+            hue: Math.random() < 0.75 ? 'warm' : 'cool',
+            tw: Math.random()*Math.PI*2,
+          });
+        }
+      }
+
+      function seedFireflies(){
+        fireflies.length = 0;
+        const rect = scene.getBoundingClientRect();
+        const n = Math.max(10, Math.min(24, Math.floor(rect.width / 70)));
+        for (let i=0; i<n; i++){
+          fireflies.push({
+            x: Math.random()*rect.width,
+            y: Math.random()*rect.height*0.7,
+            a: Math.random()*Math.PI*2,
+            s: 0.4 + Math.random()*1.2,
+            r: 1.2 + Math.random()*1.8,
+            phase: Math.random()*Math.PI*2,
+          });
+        }
+      }
+
+      function drawGlowDot(x,y,r, color, alpha){
+        const g = ctx.createRadialGradient(x,y,0,x,y,r*6);
+        g.addColorStop(0, `rgba(${color.r},${color.g},${color.b},${alpha})`);
+        g.addColorStop(1, `rgba(${color.r},${color.g},${color.b},0)`);
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(x,y,r*6,0,Math.PI*2);
+        ctx.fill();
+
+        ctx.fillStyle = `rgba(255,255,255,${alpha*0.35})`;
+        ctx.beginPath();
+        ctx.arc(x,y,r,0,Math.PI*2);
+        ctx.fill();
+      }
+
+      function step(dt){
+        const rect = scene.getBoundingClientRect();
+        // gentle background spore seeding
+        if (Math.random() < 0.14) {
+          const gx = rect.width*(0.25 + Math.random()*0.5);
+          const gy = rect.height*(0.72 + Math.random()*0.18);
+          spawnSpore(gx, gy, false);
+        }
+
+        // clear
+        ctx.clearRect(0,0,rect.width, rect.height);
+
+        // Parallax offset
+        const px = state.parallax.x, py = state.parallax.y;
+        ctx.save();
+        ctx.translate(px, py);
+
+        // Spores
+        const warm = { r: 246, g: 232, b: 154 };
+        const cool = { r: 130, g: 255, b: 223 };
+
+        for (let i=spores.length-1; i>=0; i--){
+          const p = spores[i];
+          p.age += dt;
+          const t = p.age / p.life;
+          p.tw += dt * 0.004;
+
+          p.x += p.vx * dt * 0.03 + Math.sin(p.tw) * 0.05;
+          p.y += p.vy * dt * 0.03;
+          p.vx *= 0.999;
+          p.vy *= 0.9995;
+
+          const fade = (1 - t);
+          const alpha = Math.max(0, Math.min(1, fade)) * (0.25 + 0.7*(1 - state.t)) * (state.mist ? 1 : 0.85);
+
+          const col = p.hue === 'warm' ? warm : cool;
+          if (alpha > 0.01) drawGlowDot(p.x, p.y, p.r, col, alpha);
+
+          if (t >= 1 || p.y < -60 || p.x < -120 || p.x > rect.width+120) spores.splice(i,1);
+        }
+
+        // Fireflies (stronger at night)
+        const nightFactor = (1 - Math.pow(state.t, 1.1));
+        for (let i=0; i<fireflies.length; i++){
+          const f = fireflies[i];
+          f.phase += dt * 0.0022 * f.s;
+          f.a += dt * 0.00025 * f.s;
+
+          const driftX = Math.cos(f.a) * 0.25 * dt * 0.03;
+          const driftY = Math.sin(f.a*0.9) * 0.20 * dt * 0.03;
+
+          f.x += driftX + Math.sin(f.phase) * 0.10;
+          f.y += driftY + Math.cos(f.phase*1.3) * 0.08;
+
+          if (f.x < -40) f.x = rect.width + 40;
+          if (f.x > rect.width + 40) f.x = -40;
+          if (f.y < 40) f.y = rect.height*0.68;
+          if (f.y > rect.height*0.74) f.y = 60;
+
+          const flicker = 0.55 + 0.45*Math.sin(f.phase*1.8);
+          const alpha = 0.65 * nightFactor * flicker;
+          if (alpha > 0.02) drawGlowDot(f.x, f.y, f.r, cool, alpha);
+        }
+
+        ctx.restore();
+      }
+
+      // Interactions
+      function burstAtClient(clientX, clientY){
+        const rect = scene.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        spawnSpore(x, y, true);
+      }
+
+      function setPressed(btn, pressed, label){
+        btn.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+        if (label) btn.textContent = label;
+      }
+
+      function reset(){
+        state.t = 0.35;
+        state.mist = true;
+        state.lantern = true;
+        state.motion = !prefersReducedMotion;
+        timeRange.value = String(Math.round(state.t*100));
+        setPressed(mistBtn, state.mist, `Mist: ${state.mist ? 'on':'off'}`);
+        setPressed(lanternBtn, state.lantern, `Lanterns: ${state.lantern ? 'on':'off'}`);
+        setPressed(motionBtn, state.motion, `Parallax: ${state.motion ? 'on':'off'}`);
+
+        // relight default windows
+        document.querySelectorAll('.window').forEach(w => {
+          if (w.dataset.window === 'w1' || w.dataset.window === 'w2') w.classList.add('lit');
+        });
+        applyTime();
+      }
+
+      function showTooltip(text, clientX, clientY){
+        tooltip.textContent = text;
+        tooltip.classList.remove('hidden');
+        const rect = scene.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        const pad = 14;
+        // place near cursor with clamping
+        tooltip.style.left = Math.min(rect.width - 220, Math.max(pad, x + 14)) + 'px';
+        tooltip.style.top = Math.min(rect.height - 60, Math.max(pad, y + 14)) + 'px';
+      }
+      function hideTooltip(){
+        tooltip.classList.add('hidden');
+      }
+
+      // House clicks toggle windows inside that house group
+      function toggleHouseWindows(houseGroup){
+        const windows = houseGroup.querySelectorAll('.window');
+        let anyLit = false;
+        windows.forEach(w => { if (w.classList.contains('lit')) anyLit = true; });
+        windows.forEach(w => w.classList.toggle('lit', !anyLit));
+      }
+
+      // Parallax
+      function applyParallax(){
+        if (!state.motion) {
+          state.parallax.x = 0;
+          state.parallax.y = 0;
+          document.getElementById('treesFar').style.transform = '';
+          document.getElementById('villageWrap').style.transform = '';
+          document.getElementById('mistLayer').style.transform = '';
+          document.getElementById('starsLayer').style.transform = '';
+          document.getElementById('sunbeamsLayer').style.transform = '';
+          return;
+        }
+        const cx = state.mouse.x - 0.5;
+        const cy = state.mouse.y - 0.5;
+        const ease = 0.08;
+        state.parallax.x = lerp(state.parallax.x, cx * 10, ease);
+        state.parallax.y = lerp(state.parallax.y, cy * 8, ease);
+
+        // Move layers slightly
+        document.getElementById('treesFar').style.transform = `translate(${cx*12}px, ${cy*6}px)`;
+        document.getElementById('villageWrap').style.transform = `translate(${cx*18}px, ${cy*10}px)`;
+        document.getElementById('mistLayer').style.transform = `translate(${cx*22}px, ${cy*14}px)`;
+        document.getElementById('starsLayer').style.transform = `translate(${cx*6}px, ${cy*4}px)`;
+        document.getElementById('sunbeamsLayer').style.transform = `translate(${cx*10}px, ${cy*8}px)`;
+      }
+
+      // Event wiring
+      scene.addEventListener('pointermove', (e) => {
+        const rect = scene.getBoundingClientRect();
+        state.mouse.x = clamp01((e.clientX - rect.left) / rect.width);
+        state.mouse.y = clamp01((e.clientY - rect.top) / rect.height);
+      });
+
+      scene.addEventListener('click', (e) => {
+        // don't burst when clicking UI
+        const path = e.composedPath ? e.composedPath() : [];
+        if (path.some(el => el && el.tagName && (el.tagName.toLowerCase() === 'button' || el.tagName.toLowerCase() === 'input')))
+          return;
+        if (helpModal && !helpModal.classList.contains('hidden')) return;
+
+        burstAtClient(e.clientX, e.clientY);
+      });
+
+      sporeBtn.addEventListener('click', () => {
+        const rect = scene.getBoundingClientRect();
+        burstAtClient(rect.left + rect.width*0.52, rect.top + rect.height*0.72);
+      });
+
+      resetBtn.addEventListener('click', reset);
+
+      timeRange.addEventListener('input', () => {
+        state.t = clamp01(Number(timeRange.value)/100);
+        applyTime();
+      });
+
+      mistBtn.addEventListener('click', () => {
+        state.mist = !state.mist;
+        setPressed(mistBtn, state.mist, `Mist: ${state.mist ? 'on':'off'}`);
+        applyTime();
+      });
+
+      lanternBtn.addEventListener('click', () => {
+        state.lantern = !state.lantern;
+        setPressed(lanternBtn, state.lantern, `Lanterns: ${state.lantern ? 'on':'off'}`);
+        applyTime();
+      });
+
+      motionBtn.addEventListener('click', () => {
+        state.motion = !state.motion;
+        setPressed(motionBtn, state.motion, `Parallax: ${state.motion ? 'on':'off'}`);
+        applyParallax();
+      });
+
+      // Tooltip on houses
+      village.addEventListener('pointerover', (e) => {
+        const house = e.target.closest && e.target.closest('.house');
+        if (!house) return;
+        showTooltip(house.dataset.house || 'Mushroom House', e.clientX, e.clientY);
+      });
+      village.addEventListener('pointermove', (e) => {
+        const house = e.target.closest && e.target.closest('.house');
+        if (!house || tooltip.classList.contains('hidden')) return;
+        showTooltip(house.dataset.house || 'Mushroom House', e.clientX, e.clientY);
+      });
+      village.addEventListener('pointerout', (e) => {
+        const related = e.relatedTarget;
+        if (related && related.closest && related.closest('.house')) return;
+        hideTooltip();
+      });
+
+      // Click/keyboard on houses
+      village.addEventListener('click', (e) => {
+        const house = e.target.closest && e.target.closest('.house');
+        if (!house) return;
+        e.stopPropagation();
+        toggleHouseWindows(house);
+      });
+
+      village.addEventListener('keydown', (e) => {
+        const house = e.target.closest && e.target.closest('.house');
+        if (!house) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleHouseWindows(house);
+        }
+      });
+
+      // Global keyboard: space to scatter spores, esc close modal
+      window.addEventListener('keydown', (e) => {
+        if (e.key === ' ' && document.activeElement && ['INPUT','BUTTON','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
+        if (e.key === ' ') {
+          e.preventDefault();
+          const rect = scene.getBoundingClientRect();
+          burstAtClient(rect.left + rect.width*(0.35 + Math.random()*0.3), rect.top + rect.height*(0.65 + Math.random()*0.12));
+        }
+        if (e.key === 'Escape') {
+          helpModal.classList.add('hidden');
+        }
+      });
+
+      // Help modal
+      helpBtn.addEventListener('click', () => helpModal.classList.toggle('hidden'));
+      helpModal.addEventListener('click', (e) => {
+        if (e.target && e.target.dataset && e.target.dataset.close) helpModal.classList.add('hidden');
+      });
+
+      // Animation loop
+      let last = performance.now();
+      function frame(now){
+        const dt = Math.min(48, Math.max(10, now - last));
+        last = now;
+        applyParallax();
+        step(dt);
+        requestAnimationFrame(frame);
+      }
+
+      // Init
+      function init(){
+        resize();
+        seedFireflies();
+        applyTime();
+        // seed some initial spores near village
+        const rect = scene.getBoundingClientRect();
+        for (let i=0;i<30;i++) spawnSpore(rect.width*(0.28 + Math.random()*0.44), rect.height*(0.70 + Math.random()*0.18), false);
+        requestAnimationFrame(frame);
+      }
+
+      window.addEventListener('resize', () => {
+        resize();
+        seedFireflies();
+      });
+
+      reset();
+      init();
+    })();
+  </script>
+</body>
+</html>

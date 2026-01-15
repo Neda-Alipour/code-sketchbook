@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fairy Mushroom Village</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@400;600&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Quicksand', sans-serif;
+            overflow: hidden;
+            background: linear-gradient(180deg, #1a2a1a 0%, #2d4a2d 30%, #1e3a1e 60%, #0f1f0f 100%);
+            min-height: 100vh;
+        }
+        
+        .scene {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Stars */
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 40%;
+            top: 0;
+        }
+        
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s ease-in-out infinite;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        
+        /* Moon */
+        .moon {
+            position: absolute;
+            top: 50px;
+            right: 100px;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, #fffde7 0%, #fff59d 50%, #ffeb3b 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 60px 30px rgba(255, 253, 231, 0.3),
+                        0 0 100px 60px rgba(255, 235, 59, 0.2);
+            animation: moonGlow 4s ease-in-out infinite;
+        }
+        
+        @keyframes moonGlow {
+            0%, 100% { box-shadow: 0 0 60px 30px rgba(255, 253, 231, 0.3), 0 0 100px 60px rgba(255, 235, 59, 0.2); }
+            50% { box-shadow: 0 0 80px 40px rgba(255, 253, 231, 0.4), 0 0 120px 80px rgba(255, 235, 59, 0.3); }
+        }
+        
+        /* Forest Background Trees */
+        .trees-back {
+            position: absolute;
+            bottom: 25%;
+            width: 100%;
+            height: 40%;
+        }
+        
+        .tree {
+            position: absolute;
+            bottom: 0;
+        }
+        
+        .tree-trunk {
+            background: linear-gradient(90deg, #3d2817 0%, #5c3d2e 50%, #3d2817 100%);
+            border-radius: 5px;
+        }
+        
+        .tree-foliage {
+            background: radial-gradient(ellipse, #1a4a1a 0%, #0d2d0d 100%);
+            border-radius: 50%;
+        }
+        
+        /* Ground */
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 35%;
+            background: linear-gradient(180deg, #1a3a1a 0%, #0f2a0f 50%, #0a1a0a 100%);
+            border-radius: 50% 50% 0 0 / 20% 20% 0 0;
+        }
+        
+        /* Moss patches */
+        .moss {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(ellipse, #2d5a2d 0%, #1a3a1a 100%);
+            animation: mossBreath 3s ease-in-out infinite;
+        }
+        
+        @keyframes mossBreath {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* Ferns */
+        .fern {
+            position: absolute;
+            bottom: 0;
+            animation: fernSway 4s ease-in-out infinite;
+            transform-origin: bottom center;
+        }
+        
+        @keyframes fernSway {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+        
+        /* Mushroom Houses */
+        .mushroom {
+            position: absolute;
+            bottom: 20%;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        
+        .mushroom:hover {
+            transform: scale(1.05);
+        }
+        
+        .stem {
+            background: linear-gradient(90deg, #f5e6d3 0%, #fff8f0 30%, #e8d5c4 70%, #d4c4b0 100%);
+            border-radius: 20px 20px 40px 40px;
+            position: relative;
+        }
+        
+        .cap {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+        }
+        
+        .cap-red {
+            background: radial-gradient(ellipse at 30% 30%, #ff6b6b 0%, #e53935 50%, #b71c1c 100%);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3),
+                        inset 0 -10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .cap-orange {
+            background: radial-gradient(ellipse at 30% 30%, #ffb74d 0%, #ff9800 50%, #e65100 100%);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3),
+                        inset 0 -10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .cap-purple {
+            background: radial-gradient(ellipse at 30% 30%, #ce93d8 0%, #9c27b0 50%, #4a148c 100%);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3),
+                        inset 0 -10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .cap-teal {
+            background: radial-gradient(ellipse at 30% 30%, #80cbc4 0%, #009688 50%, #004d40 100%);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3),
+                        inset 0 -10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .cap-pink {
+            background: radial-gradient(ellipse at 30% 30%, #f48fb1 0%, #e91e63 50%, #880e4f 100%);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3),
+                        inset 0 -10px 30px rgba(0,0,0,0.2);
+        }
+        
+        /* Spots on caps */
+        .spot {
+            position: absolute;
+            background: radial-gradient(ellipse, #fff8e1 0%, #ffecb3 100%);
+            border-radius: 50%;
+            box-shadow: inset 0 2px 5px rgba(255,255,255,0.5);
+        }
+        
+        /* Windows */
+        .window {
+            position: absolute;
+            background: linear-gradient(135deg, #fff9c4 0%, #ffeb3b 50%, #ffc107 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 20px 5px rgba(255, 235, 59, 0.5),
+                        0 0 40px 10px rgba(255, 193, 7, 0.3),
+                        inset 0 0 15px rgba(255,255,255,0.5);
+            animation: windowGlow 2s ease-in-out infinite;
+        }
+        
+        @keyframes windowGlow {
+            0%, 100% { box-shadow: 0 0 20px 5px rgba(255, 235, 59, 0.5), 0 0 40px 10px rgba(255, 193, 7, 0.3); }
+            50% { box-shadow: 0 0 30px 10px rgba(255, 235, 59, 0.7), 0 0 60px 20px rgba(255, 193, 7, 0.4); }
+        }
+        
+        .window::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #5c4033;
+            transform: translateY(-50%);
+        }
+        
+        .window::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #5c4033;
+            transform: translateX(-50%);
+        }
+        
+        /* Doors */
+        .door {
+            position: absolute;
+            background: linear-gradient(90deg, #5d4037 0%, #795548 30%, #5d4037 100%);
+            border-radius: 50% 50% 5px 5px;
+            border: 3px solid #3e2723;
+        }
+        
+        .door-knob {
+            position: absolute;
+            background: radial-gradient(circle, #ffd700 0%, #b8860b 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+        }
+        
+        /* Chimney */
+        .chimney {
+            position: absolute;
+            background: linear-gradient(90deg, #6d4c41 0%, #8d6e63 50%, #6d4c41 100%);
+            border-radius: 5px 5px 0 0;
+        }
+        
+        /* Smoke */
+        .smoke {
+            position: absolute;
+            background: radial-gradient(circle, rgba(200,200,200,0.6) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: smokeRise 3s ease-out infinite;
+        }
+        
+        @keyframes smokeRise {
+            0% { opacity: 0.8; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-60px) scale(2); }
+        }
+        
+        /* Glowing Spores */
+        .spore {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: floatSpore linear infinite;
+        }
+        
+        @keyframes floatSpore {
+            0% { 
+                transform: translateY(0) translateX(0) rotate(0deg); 
+                opacity: 0;
+            }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { 
+                transform: translateY(-100vh) translateX(50px) rotate(360deg); 
+                opacity: 0;
+            }
+        }
+        
+        /* Fireflies */
+        .firefly {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: radial-gradient(circle, #fff9c4 0%, #ffeb3b 50%, transparent 70%);
+            border-radius: 50%;
+            animation: fireflyFloat 8s ease-in-out infinite;
+            box-shadow: 0 0 10px 3px rgba(255, 235, 59, 0.5);
+        }
+        
+        @keyframes fireflyFloat {
+            0%, 100% { transform: translate(0, 0); opacity: 0; }
+            25% { transform: translate(30px, -50px); opacity: 1; }
+            50% { transform: translate(-20px, -100px); opacity: 0.5; }
+            75% { transform: translate(40px, -50px); opacity: 1; }
+        }
+        
+        /* Rocks */
+        .rock {
+            position: absolute;
+            background: linear-gradient(135deg, #616161 0%, #424242 50%, #212121 100%);
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+        }
+        
+        /* Flowers */
+        .flower {
+            position: absolute;
+            animation: flowerSway 3s ease-in-out infinite;
+            transform-origin: bottom center;
+        }
+        
+        @keyframes flowerSway {
+            0%, 100% { transform: rotate(-3deg); }
+            50% { transform: rotate(3deg); }
+        }
+        
+        .flower-stem {
+            background: linear-gradient(90deg, #33691e 0%, #558b2f 50%, #33691e 100%);
+            border-radius: 2px;
+        }
+        
+        .flower-petals {
+            position: absolute;
+        }
+        
+        /* Path */
+        .path {
+            position: absolute;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent 0%, #5d4037 20%, #6d4c41 50%, #5d4037 80%, transparent 100%);
+            border-radius: 50%;
+            opacity: 0.6;
+        }
+        
+        /* Grass blades */
+        .grass {
+            position: absolute;
+            bottom: 0;
+            animation: grassSway 2.5s ease-in-out infinite;
+            transform-origin: bottom center;
+        }
+        
+        @keyframes grassSway {
+            0%, 100% { transform: rotate(-8deg); }
+            50% { transform: rotate(8deg); }
+        }
+        
+        /* Title */
+        .title {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Fredoka One', cursive;
+            font-size: 2.5rem;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(255, 183, 77, 0.8),
+                         0 0 40px rgba(255, 152, 0, 0.5),
+                         0 4px 8px rgba(0,0,0,0.5);
+            letter-spacing: 2px;
+            z-index: 100;
+        }
+        
+        /* Fairy */
+        .fairy {
+            position: absolute;
+            animation: fairyFly 6s ease-in-out infinite;
+            z-index: 50;
+        }
+        
+        @keyframes fairyFly {
+            0%, 100% { transform: translate(0, 0) rotate(-5deg); }
+            25% { transform: translate(50px, -30px) rotate(5deg); }
+            50% { transform: translate(20px, -60px) rotate(-5deg); }
+            75% { transform: translate(70px, -20px) rotate(5deg); }
+        }
+        
+        .fairy-body {
+            width: 15px;
+            height: 25px;
+            background: linear-gradient(180deg, #fce4ec 0%, #f8bbd9 100%);
+            border-radius: 50% 50% 40% 40%;
+            position: relative;
+        }
+        
+        .fairy-wing {
+            position: absolute;
+            width: 20px;
+            height: 25px;
+            background: linear-gradient(135deg, rgba(179, 229, 252, 0.7) 0%, rgba(129, 212, 250, 0.5) 100%);
+            border-radius: 50% 50% 50% 50%;
+            animation: wingFlap 0.2s ease-in-out infinite;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .fairy-wing.left {
+            left: -15px;
+            transform-origin: right center;
+        }
+        
+        .fairy-wing.right {
+            right: -15px;
+            transform-origin: left center;
+        }
+        
+        @keyframes wingFlap {
+            0%, 100% { transform: scaleX(1) rotate(-10deg); }
+            50% { transform: scaleX(0.7) rotate(10deg); }
+        }
+        
+        .fairy-wing.right {
+            animation-name: wingFlapRight;
+        }
+        
+        @keyframes wingFlapRight {
+            0%, 100% { transform: scaleX(1) rotate(10deg); }
+            50% { transform: scaleX(0.7) rotate(-10deg); }
+        }
+        
+        .fairy-glow {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(255, 183, 77, 0.4) 30%, transparent 70%);
+            border-radius: 50%;
+            top: -10px;
+            left: -12px;
+            animation: fairyGlowPulse 1s ease-in-out infinite;
+        }
+        
+        @keyframes fairyGlowPulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+        
+        /* Mushrooms on ground */
+        .tiny-mushroom {
+            position: absolute;
+            bottom: 5%;
+        }
+        
+        .tiny-stem {
+            background: linear-gradient(90deg, #f5e6d3 0%, #fff8f0 50%, #e8d5c4 100%);
+            border-radius: 3px 3px 5px 5px;
+        }
+        
+        .tiny-cap {
+            background: radial-gradient(ellipse at 30% 30%, #ff6b6b 0%, #e53935 50%, #b71c1c 100%);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+        }
+        
+        /* Sign */
+        .sign {
+            position: absolute;
+            bottom: 8%;
+            left: 10%;
+        }
+        
+        .sign-post {
+            background: linear-gradient(90deg, #5d4037 0%, #795548 50%, #5d4037 100%);
+            border-radius: 3px;
+        }
+        
+        .sign-board {
+            background: linear-gradient(180deg, #8d6e63 0%, #6d4c41 100%);
+            border-radius: 5px;
+            border: 3px solid #5d4037;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Fredoka One', cursive;
+            color: #fff8e1;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="scene" id="scene">
+        <!-- Title -->
+        <h1 class="title">✨ Fairy Mushroom Village ✨</h1>
+        
+        <!-- Moon -->
+        <div class="moon"></div>
+        
+        <!-- Stars container -->
+        <div class="stars" id="stars"></div>
+        
+        <!-- Back trees -->
+        <div class="trees-back" id="trees-back"></div>
+        
+        <!-- Ground -->
+        <div class="ground">
+            <!-- Path -->
+            <div class="path" style="left: 30%; width: 150px; height: 80%; bottom: 0;"></div>
+            <div class="path" style="left: 50%; width: 200px; height: 60%; bottom: 0;"></div>
+        </div>
+        
+        <!-- Foreground elements container -->
+        <div id="foreground"></div>
+        
+        <!-- Spores container -->
+        <div id="spores"></div>
+        
+        <!-- Fireflies container -->
+        <div id="fireflies"></div>
+        
+        <!-- Mushroom houses -->
+        <div id="mushroom-houses"></div>
+    </div>
+    
+    <script>
+        // Create stars
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = Math.random() * 3 + 1 + 'px';
+                star.style.height = star.style.width;
+                star.style.animationDelay = Math.random() * 2 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+        
+        // Create back trees
+        function createTrees() {
+            const container = document.getElementById('trees-back');
+            for (let i = 0; i < 15; i++) {
+                const tree = document.createElement('div');
+                tree.className = 'tree';
+                tree.style.left = (i * 7 + Math.random() * 3) + '%';
+                
+                const height = 150 + Math.random() * 100;
+                const trunkWidth = 15 + Math.random() * 10;
+                
+                tree.innerHTML = `
+                    <div class="tree-trunk" style="width: ${trunkWidth}px; height: ${height * 0.4}px;"></div>
+                    <div class="tree-foliage" style="width: ${height * 0.8}px; height: ${height * 0.7}px; position: absolute; bottom: ${height * 0.3}px; left: 50%; transform: translateX(-50%);"></div>
+                `;
+                
+                container.appendChild(tree);
+            }
+        }
+        
+        // Create mushroom houses
+        function createMushroomHouse(x, size, capType, hasChimney = true) {
+            const house = document.createElement('div');
+            house.className = 'mushroom';
+            house.style.left = x + '%';
+            house.style.transform = 'translateX(-50%)';
+            
+            const scale = size / 100;
+            const stemWidth = 80 * scale;
+            const stemHeight = 120 * scale;
+            const capWidth = 150 * scale;
+            const capHeight = 80 * scale;
+            
+            let spotsHTML = '';
+            const spotCount = Math.floor(5 + Math.random() * 5);
+            for (let i = 0; i < spotCount; i++) {
+                const spotX = 10 + Math.random() * 80;
+                const spotY = 10 + Math.random() * 60;
+                const spotSize = 8 + Math.random() * 12 * scale;
+                spotsHTML += `<div class="spot" style="left: ${spotX}%; top: ${spotY}%; width: ${spotSize}px; height: ${spotSize}px;"></div>`;
+            }
+            
+            const capClasses = `cap ${capType}`;
+            
+            house.innerHTML = `
+                <div class="stem" style="width: ${stemWidth}px; height: ${stemHeight}px;">
+                    <div class="window" style="width: ${30 * scale}px; height: ${30 * scale}px; top: ${20 * scale}px; left: 50%; transform: translateX(-50%);"></div>
+                    <div class="door" style="width: ${35 * scale}px; height: ${50 * scale}px; bottom: 0; left: 50%; transform: translateX(-50%);">
+                        <div class="door-knob" style="width: ${8 * scale}px; height: ${8 * scale}px; right: ${5 * scale}px; top: 50%; transform: translateY(-50%);"></div>
+                    </div>
+                </div>
+                <div class="${capClasses}" style="width: ${capWidth}px; height: ${capHeight}px; top: -${capHeight * 0.7}px;">
+                    ${spotsHTML}
+                </div>
+                ${hasChimney ? `
+                <div class="chimney" style="width: ${20 * scale}px; height: ${30 * scale}px; top: -${capHeight * 0.9}px; right: ${25 * scale}px;">
+                    <div class="smoke" style="width: ${15 * scale}px; height: ${15 * scale}px; top: -${10 * scale}px; left: 50%; transform: translateX(-50%);"></div>
+                    <div class="smoke" style="width: ${10 * scale}px; height: ${10 * scale}px; top: -${20 * scale}px; left: 30%; animation-delay: 1s;"></div>
+                </div>
+                ` : ''}
+            `;
+            
+            return house;
+        }
+        
+        // Create fern
+        function createFern(x, scale = 1) {
+            const fern = document.createElement('div');
+            fern.className = 'fern';
+            fern.style.left = x + '%';
+            fern.style.bottom = '5%';
+            
+            const height = 60 * scale;
+            const color = `hsl(${140 + Math.random() * 20}, 60%, ${25 + Math.random() * 15}%)`;
+            
+            let leaves = '';
+            for (let i = 0; i < 5; i++) {
+                const leafY = i * 12;
+                const leafWidth = (40 - i * 5) * scale;
+                const rotation = -20 + i * 10;
+                leaves += `
+                    <div style="position: absolute; bottom: ${leafY}px; left: 50%; transform: translateX(-50%) rotate(${rotation}deg); 
+                                width: ${leafWidth}px; height: ${8 * scale}px; background: ${color}; border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: ${leafY}px; left: 50%; transform: translateX(-50%) rotate(${-rotation}deg); 
+                                width: ${leafWidth}px; height: ${8 * scale}px; background: ${color}; border-radius: 50%;"></div>
+                `;
+            }
+            
+            fern.innerHTML = `
+                <div style="width: ${4 * scale}px; height: ${height}px; background: linear-gradient(180deg, #2d5a2d 0%, #1a3a1a 100%); border-radius: 2px; position: relative;">
+                    ${leaves}
+                </div>
+            `;
+            
+            return fern;
+        }
+        
+        // Create grass
+        function createGrass(x, height = 40) {
+            const grass = document.createElement('div');
+            grass.className = 'grass';
+            grass.style.left = x + '%';
+            grass.style.bottom = '2%';
+            grass.style.animationDelay = Math.random() * 2 + 's';
+            
+            const color = `hsl(${120 + Math.random() * 30}, 50%, ${20 + Math.random() * 15}%)`;
+            
+            let blades = '';
+            for (let i = 0; i < 3; i++) {
+                const bladeHeight = height + Math.random() * 20;
+                const rotation = -15 + Math.random() * 30;
+                blades += `<div style="width: 3px; height: ${bladeHeight}px; background: ${color}; border-radius: 50% 50% 0 0; transform: rotate(${rotation}deg); position: absolute; bottom: 0; left: ${i * 6}px;"></div>`;
+            }
+            
+            grass.innerHTML = blades;
+            return grass;
+        }
+        
+        // Create flower
+        function createFlower(x, color) {
+            const flower = document.createElement('div');
+            flower.className = 'flower';
+            flower.style.left = x + '%';
+            flower.style.bottom = '3%';
+            flower.style.animationDelay = Math.random() * 2 + 's';
+            
+            flower.innerHTML = `
+                <div class="flower-stem" style="width: 4px; height: 50px; position: relative;">
+                    <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%);">
+                        <div style="width: 20px; height: 20px; background: ${color}; border-radius: 50%; position: relative;">
+                            <div style="position: absolute; width: 12px; height: 12px; background: #ffeb3b; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%);"></div>
+                        </div>
+                        <div style="width: 15px; height: 15px; background: ${color}; border-radius: 50%; position: absolute; top: -12px; left: 2px;"></div>
+                        <div style="width: 15px; height: 15px; background: ${color}; border-radius: 50%; position: absolute; top: 12px; left: 2px;"></div>
+                        <div style="width: 15px; height: 15px; background: ${color}; border-radius: 50%; position: absolute; top: 0; left: -10px;"></div>
+                        <div style="width: 15px; height: 15px; background: ${color}; border-radius: 50%; position: absolute; top: 0; left: 18px;"></div>
+                    </div>
+                </div>
+            `;
+            
+            return flower;
+        }
+        
+        // Create tiny mushroom
+        function createTinyMushroom(x) {
+            const mushroom = document.createElement('div');
+            mushroom.className = 'tiny-mushroom';
+            mushroom.style.left = x + '%';
+            
+            const size = 0.5 + Math.random() * 0.5;
+            
+            mushroom.innerHTML = `
+                <div class="tiny-stem" style="width: ${8 * size}px; height: ${15 * size}px;"></div>
+                <div class="tiny-cap" style="width: ${18 * size}px; height: ${12 * size}px; position: absolute; top: -${8 * size}px; left: 50%; transform: translateX(-50%);"></div>
+            `;
+            
+            return mushroom;
+        }
+        
+        // Create rock
+        function createRock(x, size) {
+            const rock = document.createElement('div');
+            rock.className = 'rock';
+            rock.style.left = x + '%';
+            rock.style.bottom = '3%';
+            rock.style.width = size + 'px';
+            rock.style.height = size * 0.6 + 'px';
+            
+            return rock;
+        }
+        
+        // Create moss
+        function createMoss(x, y, size) {
+            const moss = document.createElement('div');
+            moss.className = 'moss';
+            moss.style.left = x + '%';
+            moss.style.bottom = y + '%';
+            moss.style.width = size + 'px';
+            moss.style.height = size * 0.5 + 'px';
+            moss.style.animationDelay = Math.random() * 3 + 's';
+            
+            return moss;
+        }
+        
+        // Create firefly
+        function createFirefly() {
+            const firefly = document.createElement('div');
+            firefly.className = 'firefly';
+            firefly.style.left = Math.random() * 100 + '%';
+            firefly.style.top = 40 + Math.random() * 50 + '%';
+            firefly.style.animationDelay = Math.random() * 8 + 's';
+            firefly.style.animationDuration = (6 + Math.random() * 4) + 's';
+            
+            return firefly;
+        }
+        
+        // Create spore
+        function createSpore() {
+            const spore = document.createElement('div');
+            spore.className = 'spore';
+            
+            const size = 3 + Math.random() * 8;
+            const hue = 60 + Math.random() * 60;
+            const x = Math.random() * 100;
+            const duration = 10 + Math.random() * 15;
+            const delay = Math.random() * 10;
+            
+            spore.style.left = x + '%';
+            spore.style.bottom = '30%';
+            spore.style.width = size + 'px';
+            spore.style.height = size + 'px';
+            spore.style.background = `radial-gradient(circle, hsla(${hue}, 100%, 80%, 0.8) 0%, hsla(${hue}, 80%, 60%, 0.4) 50%, transparent 70%)`;
+            spore.style.boxShadow = `0 0 ${size * 2}px hsla(${hue}, 100%, 70%, 0.5)`;
+            spore.style.animationDuration = duration + 's';
+            spore.style.animationDelay = delay + 's';
+            
+            return spore;
+        }
+        
+        // Create fairy
+        function createFairy(x, y) {
+            const fairy = document.createElement('div');
+            fairy.className = 'fairy';
+            fairy.style.left = x + '%';
+            fairy.style.top = y + '%';
+            
+            fairy.innerHTML = `
+                <div class="fairy-glow"></div>
+                <div class="fairy-wing left"></div>
+                <div class="fairy-body"></div>
+                <div class="fairy-wing right"></div>
+            `;
+            
+            return fairy;
+        }
+        
+        // Create sign
+        function createSign() {
+            const sign = document.createElement('div');
+            sign.className = 'sign';
+            
+            sign.innerHTML = `
+                <div class="sign-board" style="width: 100px; height: 40px; transform: rotate(-3deg);">
+                    🍄 Welcome
+                </div>
+                <div class="sign-post" style="width: 10px; height: 50px; margin: 0 auto;"></div>
+            `;
+            
+            return sign;
+        }
+        
+        // Initialize scene
+        function initScene() {
+            createStars();
+            createTrees();
+            
+            const foreground = document.getElementById('foreground');
+            const housesContainer = document.getElementById('mushroom-houses');
+            const sporesContainer = document.getElementById('spores');
+            const firefliesContainer = document.getElementById('fireflies');
+            
+            // Add mushroom houses
+            const houses = [
+                { x: 15, size: 100, cap: 'cap-red' },
+                { x: 35, size: 130, cap: 'cap-orange', chimney: true },
+                { x: 55, size: 90, cap: 'cap-purple' },
+                { x: 75, size: 110, cap: 'cap-teal', chimney: true },
+                { x: 90, size: 85, cap: 'cap-pink' }
+            ];
+            
+            houses.forEach(h => {
+                housesContainer.appendChild(createMushroomHouse(h.x, h.size, h.cap, h.chimney));
+            });
+            
+            // Add foreground elements
+            // Ferns
+            [5, 12, 25, 42, 48, 62, 68, 82, 95].forEach(x => {
+                foreground.appendChild(createFern(x, 0.8 + Math.random() * 0.5));
+            });
+            
+            // Grass patches
+            for (let i = 0; i < 30; i++) {
+                foreground.appendChild(createGrass(Math.random() * 100, 30 + Math.random() * 30));
+            }
+            
+            // Flowers
+            const flowerColors = ['#e91e63', '#9c27b0', '#2196f3', '#00bcd4', '#ff5722'];
+            [8, 22, 45, 58, 72, 85].forEach((x, i) => {
+                foreground.appendChild(createFlower(x, flowerColors[i % flowerColors.length]));
+            });
+            
+            // Tiny mushrooms
+            [3, 28, 52, 78, 96].forEach(x => {
+                foreground.appendChild(createTinyMushroom(x));
+            });
+            
+            // Rocks
+            [18, 40, 65, 88].forEach(x => {
+                foreground.appendChild(createRock(x, 20 + Math.random() * 30));
+            });
+            
+            // Moss patches
+            for (let i = 0; i < 15; i++) {
+                foreground.appendChild(createMoss(Math.random() * 100, 5 + Math.random() * 15, 30 + Math.random() * 50));
+            }
+            
+            // Sign
+            foreground.appendChild(createSign());
+            
+            // Fireflies
+            for (let i = 0; i < 20; i++) {
+                firefliesContainer.appendChild(createFirefly());
+            }
+            
+            // Glowing spores
+            for (let i = 0; i < 50; i++) {
+                sporesContainer.appendChild(createSpore());
+            }
+            
+            // Fairies
+            foreground.appendChild(createFairy(20, 35));
+            foreground.appendChild(createFairy(70, 40));
+            foreground.appendChild(createFairy(85, 30));
+        }
+        
+        // Mouse interaction - create sparkles
+        document.addEventListener('mousemove', (e) => {
+            if (Math.random() > 0.9) {
+                const sparkle = document.createElement('div');
+                sparkle.style.position = 'absolute';
+                sparkle.style.left = e.clientX + 'px';
+                sparkle.style.top = e.clientY + 'px';
+                sparkle.style.width = '5px';
+                sparkle.style.height = '5px';
+                sparkle.style.background = 'radial-gradient(circle, #fff 0%, #ffeb3b 50%, transparent 70%)';
+                sparkle.style.borderRadius = '50%';
+                sparkle.style.pointerEvents = 'none';
+                sparkle.style.zIndex = '1000';
+                sparkle.style.animation = 'sparkleFade 1s ease-out forwards';
+                document.body.appendChild(sparkle);
+                
+                setTimeout(() => sparkle.remove(), 1000);
+            }
+        });
+        
+        // Add sparkle animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes sparkleFade {
+                0% { opacity: 1; transform: scale(1); }
+                100% { opacity: 0; transform: scale(0) translateY(-20px); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Initialize on load
+        initScene();
+    </script>
+</body>
+</html>
